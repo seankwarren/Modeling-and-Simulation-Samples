@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<!-- Header of the HTML file. Usually, all libraries and scripts are    -->
+<!-- placed in this section of the HTML file.                           -->
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<head>
+    <!--    MathJax is used to show equations! 
+            The following section sets up the MathJax environment.  -->
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      CommonHTML:{
+          scale :125,
+      } ,
+      tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+    });
+    </script>
+    <!--    The following line imports the MathJax library          -->
+    <script 
+        type="text/javascript" async 
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS_CHTML">
+    </script>
+    <!-- including AkPlot.js for plotting purposes. -->
+    <script src='https://abubujs.org/libs/AkPlot.latest.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<!-- Main body of the html file                                         -->
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<body onload='bifurcationReset();init();'> <!--    when the HTML file is loaded the function 
+                                init() is executed.                     -->
+<h1>The Gaussian Map</h1>   <!-- Header of the page             -->
+<!-- The following canvas is used for plotting -->
+<input type='button' onclick='bifurcationReset();' value='Reset Bifurcation Plot'></input></br>
+<canvas id="c0"             
+        width="600" 
+        height="300" 
+        style='border:2px solid #eeeeee'>
+</canvas></br>
+
+<canvas id="c1"             
+        width="600" 
+        height="600" 
+        style='border:2px solid #eeeeee'>
+</canvas></br>
+<p> In this applet we study the gaussian map which is described by:</p>
+\(    x_{n+1} = e^{-b x_n^2}+r  \)
+<p>You can change $r$ using either the slider or the input box.</p>
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<!-- the table of values                                                -->
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<table>
+    <tr>
+        <td>$r$</td>
+        <td><input  type='number' id='r' 
+                    step=0.01 value=2.6></td>
+        <td><input  type='range'  id='rslider' 
+                    min=-4.0 max=4.0 step=0.01 value=2.6></td>
+    </tr>
+    <tr>
+        <td>$b$</td>
+        <td><input  type='number' id='b' 
+                    step=0.01 value=2.0></td>
+        <td><input  type='range'  id='bslider' 
+                    min=.0 max=10.0 step=0.01 value=2.0></td>
+    </tr>
+
+    <tr>
+        <td>$x^0$</td>
+        <td><input  type='number' id='x0' 
+                    step=0.01 value=0.2 
+                    onchange='init()'></td>
+        <td><input  type='range' id='xslider' 
+                    min=0.0 max=1.0 step=0.01 value=0.2></td>
+    </tr>
+    <tr>
+        <td>wait</td>
+        <td><input  type='number' id='wait' value=5 ></td>
+    </tr>
+</table>
+<p>For more information see <a href='https://en.wikipedia.org/wiki/Logistic_map'>here</a>.</p>
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<!-- Computational script                                               -->
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<script>
+
+function getNum(id){ /* gets the number from the GUI using the id */
+    return eval(document.getElementById(id).value) ;
+}
+
+
+/*=========================================================================
+ * The maps return equation function
+ *=========================================================================
+ */
+function logistic(x,r,b){
+    return Math.exp(-b*x*x)+r ;
+}
+
+/*========================================================================
+ * creating the map
+ *========================================================================
+ */ 
+var c0 = document.getElementById('c0') ;
+var plt0 = new Plot(c0) ;
+plt0.margins.left = 90 ;
+plt0.margins.right = 20 ;
+plt0.margins.top=10 ;
+plt0.xlabel = 'r' ;
+plt0.ylabel = 'x';
+plt0.yticks.precision = 4 ;
+plt0.xticks.precision = 4 ;
+
+xr = {min:-5, max:5} ;
+rr = {min:-3, max:4} ;
+plt0.xlimits = [rr.min,rr.max] ;
+plt0.ylimits = [xr.min,xr.max] ;
+plt0.legend = 'on' ;
+plt0.legend.location = [c0.width-150,10] ;
+
+var rcrv = plt0.addCurveFromPoints() ; rcrv.name ='r-value' ;
+var s = plt0.addScatter() ;
+rcrv.color = '#ff0000' ;
+r_range = { min:0, max:4 }
+function bifurcation(r){
+    var b = getNum('b') ;
+    var rmin = r.min ;
+    var rmax = r.max ;
+    var dr = (rmax-rmin)/600. ;
+    for(var R=rmin; R<=rmax; R+=dr ){
+        x = 0.2 ;
+        for(i=0;i<500;i++){
+            x=logistic(x,R,b) ;
+            if (i>300){
+                s.plot(R,x) ;
+            }
+        }
+    }
+    plt0.draw() ;
+}
+plt0.addDragZoom(bifurcation) ;
+
+function bifurcationReset(){
+    plt0.xlimits=[rr.min,rr.max] ;
+    plt0.ylimits=[xr.min,xr.max] ;
+    plt0.init() ;
+    bifurcation(rr) ;
+}
+/*=========================================================================
+ *  setting up the cobwebbing plot
+ *=========================================================================
+ */
+var c1 = document.getElementById('c1') ;
+var plt = new Plot(c1) ;
+plt.margins.left = 70 ;
+plt.margins.right = 20 ;
+plt.margins.top=60 ;
+plt.xlabel = 'x^{n}' ;
+plt.ylabel = 'x^{n+1}';
+plt.yticks.precision = 2 ;
+plt.xticks.precision = 2 ;
+plt.xlimits = [xr.min,xr.max] ;
+plt.ylimits = [xr.min,xr.max] ;
+plt.legend = 'on' ;
+plt.legend.location = [c1.width-150,10] ;
+
+var crv1 = plt.addCurveFromPoints() ;
+crv1.name = 'y = x'
+
+var crv2 = plt.addCurveFromPoints() ;
+crv2.name = 'y = map(x)' ;
+
+var crv3 = plt.addCurveFromPoints() ;
+crv3.name = 'Cobweb' ;
+/*=========================================================================
+ * a function to bind the values of two variables
+ *=========================================================================
+ */
+function bindValues(id1,id2){
+    var a = '#'+id1 ;
+    var b = '#'+id2 ;
+    $(a).change(function(){
+        $(b).val($(a).val()) ;
+    }) ;
+
+    $(b).change(function(){
+        $(a).val($(b).val()) ;
+    }) ;
+} ;
+
+/*=========================================================================
+ * slider & input box
+ *=========================================================================
+ */
+bindValues('r', 'rslider') ;
+bindValues('b', 'bslider') ;
+bindValues('x0', 'xslider') ;
+
+$('input').change(init) ;
+
+$('#bslider').change(function(){
+    b=getNum('b') ;
+    bifurcationReset() ;
+}) ;
+$('#b').change(function(){
+    b=getNum('b') ;
+    bifurcationReset() ;
+}) ;
+
+/*=========================================================================
+ *  setting up the cobwebbing plot
+ *=========================================================================
+ */
+var c1 = document.getElementById('c1') ;
+var plt = new Plot(c1) ;
+plt.margins.left = 70 ;
+plt.margins.right = 20 ;
+plt.margins.top=60 ;
+
+/*=========================================================================
+ * initialize and solve
+ *=========================================================================
+ */
+var xp, xc, x0, r;
+
+function init(){    /*  Initialize the solution */
+    plt.reset() ;
+    x0= getNum('x0') ;
+    r=getNum('r') ;
+    b=getNum('b') ;
+    crv1.reset() ;
+    crv2.reset() ;
+    crv3.reset() ;
+    rcrv.reset() ;
+ 
+    for(var i=0; i<=1001;i++){
+        var x = -5+i*0.01 ;
+        crv1.plot(x,x) ;
+        crv2.plot(x,logistic(x,r,b)) ;
+    }
+    xp = x0 ;
+}
+
+function run(){         /* march solution and draw the solution */
+    xc = logistic(xp,r,b)  ;
+    crv3.plot(xp,xp) ;
+    crv3.plot(xp,xc) ;
+    xp = xc ;
+
+    rcrv.reset() ;
+    rcrv.plot(r,plt0.ymin) ;
+    rcrv.plot(r,plt0.ymax) ;
+
+    setTimeout(run,getNum('wait')) ;
+}
+
+run() ;                 /* execute the program                  */
+</script>
+</body>
+</html>

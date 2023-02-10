@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<!-- Head -->
+<head>
+<script src='https://abubujs.org/libs/Abubu.latest.js'
+	type='text/javascript'></script>
+</head>
+<!-- body of the html page -->
+<body>
+    <canvas id="canvas_1" 
+            width=512 height=512
+            style="border:1px solid #000000;" >
+        <!-- This message is displayed if canvas is not available -->
+        Your browser does not support the HTML5 canvas tag.
+    </canvas>
+</body>
+
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<!-- fragment shader                                                    -->
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<script id='fshader' type='shader'>#version 300 es
+precision highp float ;
+precision highp int ;
+
+out vec4 outcolor ; /*  output of the shader
+                        pixel color             */
+in vec2 cc ;        /* input from vertex shader */
+
+uniform float radius, theta ;
+uniform float   n ;
+#define csqr(z)     vec2((z).x*(z).x-(z).y*(z).y,2.*(z).x*(z).y)
+#define cmul(a,b)   vec2((a).x*(b).x-(a).y*(b).y,(a).x*(b).y + (a).y*(b).x)
+#define cpol(zp)    (zp).x*vec2(cos((zp).y),sin((zp).y)) 
+#define gpol(z)     vec2(length(z),atan((z).y,(z).x))
+
+/*========================================================================
+ * calculate z^m (m>0)
+ *========================================================================
+ */ 
+//vec2 cpow(vec2 z,int m){
+//    vec2 z0 = vec2(1.,0.) ;
+//    for(int i=0; i<m ; i++){
+//        z0 = cmul(z0,z) ;
+//    }
+//    return z0 ;
+//}
+
+vec2 cpow(vec2 z, float m){
+    vec2 zp = gpol(z) ;
+    vec2 zm = vec2(pow(zp.x,m),m*zp.y) ;
+    return cpol(zm) ;
+}
+
+// Main body of the shader
+void main() {
+    vec2 z = cc*4. - vec2(2.,2.) ; /* Initial coordinate based
+                            on pixel position */
+    vec2 c0 = radius*vec2(cos(theta),sin(theta)) ;   /* the constant c0 */
+
+    int iter ;
+    /* Iteration loop to march the iterative map for a 1000 times */
+    for(int i=0; i<1000; i++){
+
+        /* the Julia map */
+        z = cpow(z,n) + c0 ;
+        iter = i ;
+        if (length(z)>2.){  /* if the point is not part of the set
+                            color it black and end fragment shader */
+            //outcolor=vec4(0.,0.,0.,1.) ;
+            //return ;
+            break ;
+        }
+    }
+
+    /* if we managed to finish the loop the point is part of the set
+       so we can color it white */
+    outcolor.r = float(iter) - log(log(length(z)))/800. ;
+    return ;
+}
+</script>
+
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<!-- Main script -->
+<!--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&-->
+<script>
+// get the shader source by its id ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function source(id){
+    return document.getElementById(id).text ;
+}
+
+// Get the canvas --------------------------------------------------------
+var canvas_1 = document.getElementById('canvas_1') ;
+
+// global variable structure
+var env = {
+    r : 0.2 ,
+    th : 0. ,
+    n : 2,
+} ;
+
+env.width   = canvas_1.width ;
+env.height  = canvas_1.height ;
+
+// 
+env.result = new Abubu.Float32Texture(env.width,env.height) ;
+
+// Setup a solver --------------------------------------------------------
+var renderer = new Abubu.Solver( {
+    fragmentShader  : source('fshader'),
+    uniforms        : {
+        theta   : { type : 'f', value : env.th} ,
+        radius  : { type : 'f', value : env.r } ,
+        n : { type : 'f' , value : env.n  } ,
+    } ,
+    targets : {
+        outcolor : { location : 0 , target : env.result } 
+    }
+    // canvas          : canvas_1,
+} ) ;
+
+
+env.plot = new Abubu.Plot2D({
+    target : env.result ,
+    channel : 'r' ,
+    minValue : 0 ,
+    maxValue : 30 ,
+    colorbar : true ,
+    canvas : canvas_1 
+} ) ;
+env.plot.init() ;
+
+// fully render solution ------------------------------------------------- 
+function render(){
+    renderer.render() ;
+    env.plot.render() ;
+} 
+// Create a gui 
+var gui = new Abubu.Gui() ;
+var panel = gui.addPanel() ;
+
+panel.add(env, 'r').step(0.01).onChange(function(){
+    renderer.uniforms.radius.value = env.r ;
+    render() ;
+}) ;
+panel.add(env, 'th').step(0.01).onChange(function(){
+    renderer.uniforms.theta.value = env.th ;
+    render() ;
+}) ;
+
+panel.add(env, 'n').step(0.01).onChange(function(){
+    renderer.uniforms.n.value = env.n ;
+    render() ;
+}) ;
+
+
+// rendering (running) the solver
+render() ;
+</script>
+</html>

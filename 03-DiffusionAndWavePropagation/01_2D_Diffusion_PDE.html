@@ -1,0 +1,199 @@
+
+<html>
+<head>
+<!-- Including Abubu.js Library -->
+<script src='https://abubujs.org/libs/Abubu.latest.js'></script>
+</head>
+
+<!-- Main body of html page ............................................-->
+<body>
+    <!-- Drawing Canvas to Visualize Results -->
+    <canvas id="canvas_1" width=512 height=512
+            style="border:1px solid #000000;" >
+    </canvas>
+</body>
+
+<!-- Initial condition shader ----------------------------------------- -->
+<script id='icshader' type='x-shader-fragment'>#version 300 es
+precision highp float ;
+precision highp int ;
+
+layout ( location = 0 ) out vec4 outTrgt1 ; // output @ location 1
+layout ( location = 1 ) out vec4 outTrgt2 ; // output @ location 2
+
+in vec2 cc ;    // center of pixel location
+void main(){
+    vec4 outTrgt =vec4(0.) ; // Setting all channels to zero
+    if (length(cc-vec2(0.5))<.1){
+        outTrgt.r = 1. ;
+    }
+    outTrgt1 = outTrgt ;
+    outTrgt2 = outTrgt ;
+    return ;
+}
+</script>
+
+
+<!-- Time Step Shader ------------------------------------------------- -->
+<script id='tsshader' type='x-shader-fragment'>#version 300 es
+precision highp float ;     /* high precision float     */
+precision highp int ;       /* high precision integers  */
+
+uniform sampler2D   inTrgt ;/* input texture            */
+uniform float       dt ;    /* delta t: time increment  */
+
+
+/* .......................................................................
+   using macros for parameters. consider changing them by uniforms 
+   and updating them through the graphical user interface as an excercise
+   .......................................................................
+*/
+#define diffCoef    0.001   /* diffusion coefficient    */
+#define lx          8.0     /* length of the domain     */
+
+layout (location = 0 ) out vec4 outTrgt ; // output color of the shader
+
+in vec2 cc ;    // Center coordinate of the pixel : between 0-1.
+
+/*-------------------------------------------------------------------------
+ * main body of the shader
+ *-------------------------------------------------------------------------
+ */
+void main() {
+
+    // reading the texture size and calculating delta_x (dx) .............
+    vec2    size = vec2(textureSize( inTrgt,0 )) ;
+    float   dx   = lx/size.x ; /* delta x: spacial increment */
+
+    // unit vectors ......................................................
+    vec2 ii = vec2(1.,0.)/size ; // unit vector in x
+    vec2 jj = vec2(0.,1.)/size ; // unit vector in y
+
+    // calculating laplacian using the  central difference scheme ........
+    vec4 laplacian = 
+            texture( inTrgt, cc-ii  ) 
+        +   texture( inTrgt, cc+ii  )
+        +   texture( inTrgt, cc+jj  ) 
+        +   texture( inTrgt, cc-jj  ) 
+        -4.*texture( inTrgt, cc     ) ;
+
+    laplacian = laplacian/(dx*dx) ;
+
+    // extracting values at the center of pixel ..........................
+    vec4  C = texture( inTrgt, cc ) ;
+    float u = C.r ;
+    float time = C.b ;
+
+    // calculating time derivatives ......................................
+    float du2dt = laplacian.r*diffCoef ;
+
+
+    // Euler time integration ............................................
+    u += du2dt*dt ;
+    time += dt ;
+
+    // Updating the output color .........................................
+    outTrgt = vec4(u,0.,time,1.) ;
+    return ;
+}
+</script>
+
+<script>
+// get the shader source by its id ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function source(id){
+    return document.getElementById(id).text ;
+}
+
+// Get the canvas ........................................................
+var canvas_1 = document.getElementById('canvas_1') ;
+
+// defining a textures for time stepping .................................
+var txt1 = new Abubu.Float32Texture(512,512) ;
+var txt2 = new Abubu.Float32Texture(512,512) ;
+
+// variables for interactions through GUI ................................
+env = {
+    skip : 1 ,
+    running : false ,
+    solve : function(){ env.running = !env.running ; } ,
+} ;
+
+// init solver ...........................................................
+var icSolver = new Abubu.Solver({
+    fragmentShader : source ('icshader') ,
+    targets : {
+        outTrgt1 : { location : 0 , target : txt1 } ,
+        outTrgt2 : { location : 1 , target : txt2 }
+    }
+} ) ;
+env.init = function(){ icSolver.render() } ;
+env.init() ;
+
+// Setup time-step solvers -----------------------------------------------
+
+// odd time steps : gets txt1 --> writes txt2 ............................
+var tsSolver1 = new Abubu.Solver( {
+    fragmentShader : source('tsshader') ,
+    uniforms : {
+        inTrgt  : { type : 't', value : txt1    } ,
+        dt      : { type : 'f', value : 0.05    } ,
+    },
+    targets : {
+        outTrgt : { location :0, target : txt2  } ,
+    }
+} ) ;
+
+// even time steps : gets txt2 --> writes txt1 ...........................
+var tsSolver2 = new Abubu.Solver( {
+    fragmentShader : source('tsshader') ,
+    uniforms : {
+        inTrgt  : { type : 't', value : txt2    } ,
+        dt      : { type : 'f', value : 0.05    } ,
+    },
+    targets : {
+        outTrgt : { location :0, target : txt1  } ,
+    }
+} ) ;
+
+// visualization solver --------------------------------------------------
+var plt = new Abubu.Plot2D({
+    target : txt1 ,
+    channel: 'r',
+    minValue : -.3,
+    maxValue : 1.1,
+    colorbar : true ,
+    canvas : canvas_1
+} ) ;
+plt.init() ;
+
+// run and visualize the program -----------------------------------------
+function run(){
+    if (env.running){
+        for(var i=0; i < env.skip ; i++){
+            tsSolver1.render() ;
+            tsSolver2.render() ;
+        }
+    }
+    plt.render() ;
+    requestAnimationFrame(run) ;
+}
+
+// create the user interface ---------------------------------------------
+function createGUI(){
+    var gui = new Abubu.Gui() ;
+    var pnl = gui.addPanel() ;
+
+    pnl.add( env, 'skip').step(1).min(1) ;
+    pnl.add( env, 'init').name( 'Initialize Solution' ) ;
+    pnl.add( env, 'solve').name('Solve/Pause') ;
+}
+
+// execute createGUI .....................................................
+createGUI() ;
+
+// execute run ...........................................................
+run() ;
+
+</script>
+</html>
+
