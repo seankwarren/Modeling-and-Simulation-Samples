@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src='AkPlot.js'> </script>
+    <!-- including the library -->
+</head>
+
+<body onload='run();'>
+    <h1>2 Body problem (Verlet)</h1>
+    <canvas id="c1" width="512" height="512" style="border:1px solid #d3d3d3;">
+        Your browser does not support the HTML5 canvas tag.</canvas></br>
+
+    <input type='button' onclick='init();' value='initialize'>
+
+    <input type='button' onclick='running=~running;' value='run'>
+    <table>
+        <tr>
+            <td>c of mass</td>
+            <td><input type='checkbox' id='cms' checked></td>
+        </tr>
+        <tr>
+            <td>m1</td>
+            <td><input type='number' id='m1' value=1></td>
+        </tr>
+        <tr>
+            <td>m2</td>
+            <td><input type='number' id='m2' value=20></td>
+        </tr>
+        <tr>
+            <td>vo</td>
+            <td><input type='number' id='vo' value=4.5></td>
+        </tr>
+        <tr>
+            <td>dt</td>
+            <td><input type='number' id='dt' value=.025></td>
+        </tr>
+        <tr>
+            <td>Loop Skip</td>
+            <td><input type='number' id='skip' value=1 step=1></td>
+        </tr>
+        <tr>
+            <td>Wait</td>
+            <td><input type='number' id='wait' value=10 step=1></td>
+        </tr>
+    </table>
+
+    <script>
+
+        function getNum(id) { /* gets the number from the GUI using the id */
+            return eval(document.getElementById(id).value);
+        }
+
+        /* Setting up the plot  ---------------------------- */
+        var cnvs = document.getElementById('c1');
+        var plt = new Plot(cnvs);
+        plt.xlimits = [-1., 1.]; // Horizontal Axis limits
+        plt.ylimits = [-1., 1.]; // Vertical Axis limits
+        plt.xticks.noDivs = 5; plt.xticks.precision = 1;
+        plt.yticks.noDivs = 5; plt.yticks.precision = 1;
+
+        plt.grid = 'on';   // Turning the grid 'on'
+        plt.xlabel = 'x';  // Setting the label for the horizontal axis
+        plt.ylabel = 'y';  // Setting the label for the vertical axis
+
+        // Defining the first line for the first body
+        var crv1 = plt.addCurveFromPoints(); crv1.name = 'First Body';
+
+        // Defining the second line for the second body
+        var crv2 = plt.addCurveFromPoints(); crv2.name = 'Second Body';
+
+        // Setting the legend visible and placing it
+        plt.legend.visible = true;     // Turning on the legend
+        plt.legend.location = [350, 20];// Location of the legend
+
+        // Initializing the plot using the above settings
+        plt.init();
+
+
+        // Initializing the problem -----------------------
+        var m1 = 1;
+        var m2 = 20;
+        var G = 1;
+        var ro = 3;
+        var dt = .025;
+        var vo = 4.5;
+        var r = 0;
+        var r3 = 0;
+
+        var running = false;
+        var x1 = 2;
+        var y1 = 1;
+        var vx1 = 0;
+        var vy1 = vo;
+        var x2 = 1;
+        var y2 = 1;
+        var vx2 = 0;
+        var vy2 = 0;
+        var rcmxo = rcmyo = rcmxn = rcmyn = 0;
+        var x1n = y1n = x2n = y2n = 0;
+        var xrn = yrn = rn = rn3 = 0;
+        var cmsv = 1;
+        var maxStep = 0.2;
+
+        function init() { // Initialize the solution
+            plt.reset(); // Clears plotted data
+            /*m1=1;
+              m2=20;  */
+            m1 = getNum('m1');
+            m2 = getNum('m2');
+            /* vo=4.5;*/
+            vo = getNum('vo');
+            cmsv = document.getElementById('cms').checked;
+            dt = getNum('dt');
+
+            running = false;
+            x1 = 2;
+            y1 = 1;
+            vx1 = 0;
+            vy1 = vo;
+            x2 = 1;
+            y2 = 1;
+            vx2 = 0;
+            vy2 = 0;
+            rcmxo = rcmyo = rcmxn = rcmyn = 0;
+            x1n = y1n = x2n = y2n = 0;
+            xrn = yrn = rn = rn3 = 0;
+        }
+
+        function ac(x, m, r3) {
+            return -(G * m * x / r3);
+        }
+
+        function marchTime() { // March the solution for one time step
+            xr = x1 - x2;
+            yr = y1 - y2;
+            r = Math.sqrt(xr ** 2 + yr ** 2);
+            r3 = r * r * r;
+
+            x1n = x1 + dt * vx1 + .5 * dt * dt * ac(xr, m2, r3);
+            y1n = y1 + dt * vy1 + .5 * dt * dt * ac(yr, m2, r3);
+            x2n = x2 + dt * vx2 + .5 * dt * dt * ac(-xr, m1, r3);
+            y2n = y2 + dt * vy2 + .5 * dt * dt * ac(-yr, m1, r3);
+
+            xrn = x1n - x2n;
+            yrn = y1n - y2n;
+            rn = Math.sqrt(xrn ** 2 + yrn ** 2);
+            rn3 = rn * rn * rn;
+
+            vx1 = vx1 + .5 * dt * (ac(xr, m2, r3) + ac(xrn, m2, rn3));
+            vy1 = vy1 + .5 * dt * (ac(yr, m2, r3) + ac(yrn, m2, rn3));
+            vx2 = vx2 + .5 * dt * (ac(-xr, m1, r3) + ac(-xrn, m1, rn3));
+            vy2 = vy2 + .5 * dt * (ac(-yr, m1, r3) + ac(-yrn, m1, rn3));
+
+            rcmxn = cmsv * (m1 * x1n + m2 * x2n) / (m1 + m2);
+            rcmyn = cmsv * (m1 * y1n + m2 * y2n) / (m1 + m2);
+
+            x1 = x1n;
+            y1 = y1n;
+            x2 = x2n;
+            y2 = y2n;
+        }
+
+        function draw() { // draw the solution on the screen
+            crv1.plot((x1 - rcmxn) / ro, (y1 - rcmyn) / ro);
+            crv2.plot((x2 - rcmxn) / ro, (y2 - rcmyn) / ro);
+        }
+
+        function run() {
+            if (running) {
+                for (var i = 0; i < getNum('skip'); i++) {
+                    marchTime();
+                }
+                draw();
+            }
+            setTimeout(run, getNum('wait'));
+        }
+
+        init();    // Initialize the problem
+        run();     // Run the infinite loop
+    </script>
+</body>
+
+</html>

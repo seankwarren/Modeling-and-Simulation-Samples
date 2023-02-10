@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body onload='run();'>
+	<h1>3 Body problem (Verlet)</h1>
+	<canvas id="c1" width="512" height="512" style="border:1px solid #d3d3d3;">
+		Your browser does not support the HTML5 canvas tag.</canvas></br>
+
+	<input type='button' onclick='init();' value='initialize'>
+
+	<input type='button' onclick='running=~running;' value='run'>
+	<table>
+		<tr>
+			<td>m1</td>
+			<td><input type='number' id='m1' value=1></td>
+		</tr>
+		<tr>
+			<td>m2</td>
+			<td><input type='number' id='m2' value=1></td>
+		</tr>
+		<tr>
+			<td>vo</td>
+			<td><input type='number' id='vo' value=1></td>
+		</tr>
+		<tr>
+			<td>c of mass</td>
+			<td><input type='number' id='cms' value=1> (1, yes, 0 no)</td>
+		</tr>
+		<tr>
+		<tr>
+			<td>dt</td>
+			<td><input type='number' id='dt' value=.001></td>
+			<td>Skip frames</td>
+			<td><input type='number' id='skip' value=15 step=1></td>
+		</tr>
+		<tr>
+			<td>plot trajectory</td>
+			<td><input type='checkbox' id='tra' checked></td>
+		</tr>
+
+
+
+	</table>
+
+	<script>
+
+		var position = { x: 0, y: 0 };
+		var cnvs = document.getElementById('c1');
+		var width = cnvs.width;
+		var height = cnvs.height;
+		var ctx = cnvs.getContext('2d');
+
+		var minX = -1.2;
+		var maxX = 1.2;
+		var minY = -1.2;
+		var maxY = 1.2;
+
+		var m1 = 1 / 1.;
+		var m2 = 1 / 1.;
+		var m3 = 1 / 1.;
+
+		/*  S-E-M
+		var m1=1;
+		var m2=0.1;
+		var m3=20;
+		*/
+		var traj = 1;
+		var G = 1;
+		var ro = 1.7;
+		var dt = .00025;
+		var vo = 1;
+		console.log(m1, m2);
+
+		function Px(x) {
+			return width * (x - minX) / (maxX - minX);
+		}
+		function Py(y) {
+			return height * (maxY - y) / (maxY - minY);
+		}
+
+		function ac(x, m, r3) {
+			return -dt * (G * m * x / r3);
+		}
+
+		var running = false;
+
+		var x1 = 0.654504904492769;
+		var y1 = 1.135463234751087;
+		var x2 = -0.008734462769570;
+		var y2 = -1.481635584087405;
+		var x3 = -0.48778211541706;
+		var y3 = 0.236845409927442;
+		var vx1 = 0.294339951803385;
+		var vy1 = -0.605376046698418;
+		var vx2 = 0.038678643994549;
+		var vy2 = 0.434105189236202;
+		var vx3 = -0.333018595797923;
+		var vy3 = 0.171270857462206;
+
+
+
+		/* 3c
+		var x1=1;
+		var y1=0;
+		var x2=-.5;
+		var y2=Math.sqrt(3)/2;
+		var x3=-.5;
+		var y3=-Math.sqrt(3)/2;
+		var vx1=0;
+		var vy1=.5;
+		var vx2=-.5*Math.sqrt(3)/2;
+		var vy2=-.5*.5;
+		var vx3=.5*Math.sqrt(3)/2;
+		var vy3=-.5*.5;
+		*/
+
+		/* flw
+		var x1=-0.602885898116520;
+		var y1=.1059162128863347;
+		var x2=0.252709795391000;
+		var y2=.105825487222437;
+		var x3=-0.355389016941814;
+		var y3=.1038323764315145;
+		var vx1=0.122913546623784;
+		var vy1=0.747443868604908;
+		var vx2=-0.019325586404545;
+		var vy2=1.369241993562101;
+		var vx3=-0.103587960218793;
+		var vy3=-2.116685862168820;
+		*/
+
+		/* S-E-M
+		var x1=2.1;
+		var y1=.5;
+		var vx1=0 ;
+		var vy1=5 ;
+		var x2=x1+.05;
+		var y2=y1;
+		var vx2=1.5;
+		var vy2=1;
+		var x3=0;
+		var y3=0;
+		var vx3=0;
+		var vy3=0;
+		*/
+
+		/*
+		var x1=-.0347;
+		var y1= 1.1856;
+		var vx1=.2495 ;
+		var vy1=-.1076 ;
+		var x2=.2693;
+		var y2= -1.0020;
+		var vx2=.2059;
+		var vy2=-.9396;
+		var x3=-.2328;
+		var y3=-.5978;
+		var vx3=-.4553;
+		var vy3=1.0471;
+		*/
+
+		/*
+		var x1=.97000436 ;
+		var y1=-.24308753 ;
+		var vx1=.93240737/2 ;
+		var vy1=.86473146/2 ;
+		var x2=-x1;
+		var y2=-y1 ;
+		var vx2=vx1;
+		var vy2=vy1;
+		var x3=0;
+		var y3=0;
+		var vx3=-.93240737;
+		var vy3=-.86473146;
+		*/
+		/*
+		var x1=-0.30805788 ;
+		var y1=0 ;
+		var vx1=0 ;
+		var vy1=-1.015378093 ;
+		var x2=0.15402894;
+		var y2=-0.09324743 ;
+		var vx2=0.963502817;
+		var vy2=0.507689046;
+		var x3=x2;
+		var y3=-y2;
+		var vx3=-vx2;
+		var vy3=vy2;
+		*/
+
+		var rcmxo = rcmyo = rcmxn = rcmyn = 0;
+		var x1n = y1n = x2n = y2n = x3n = y3n = 0;
+		var xr12 = yr12 = r12 = r312 = 0;
+		var xr12n = yr12n = r12n = rn312 = 0;
+
+		var xr31 = yr31 = r31 = r331 = 0;
+		var xr31n = yr31n = r31n = rn331 = 0;
+
+		var xr32 = yr32 = r32 = r332 = 0;
+		var xr32n = yr32n = r32n = rn332 = 0;
+
+		var cmsv = 1;
+
+		var maxStep = 0.2;
+		function getNum(id) { /* gets the number from the GUI using the id */
+			return eval(document.getElementById(id).value);
+		}
+
+
+		function init() {
+			m1 = getNum('m1');
+			m2 = getNum('m2');
+			vo = getNum('vo');
+			cmsv = getNum('cms');
+			traj = document.getElementById('tra').checked;
+
+			console.log(cmsv, traj);
+
+			running = false;
+			/*
+		 x1=1 ;
+		 y1=1 ;
+		 vx1=0 ;
+		 vy1=vo*0 ;
+		 x2=1;
+		 y2=1 ;
+		 vx2=0;
+		 vy2=0;
+		 x3=0;
+		 y3=0;
+		 vx3=0;
+		 vy3=1;
+		
+		 rcmxo=rcmyo=rcmxn=rcmyn=0;
+		 x1n=y1n=x2n=y2n=0;
+		 xrn=yrn=rn=rn3=0;
+			*/
+			ctx.clearRect(0, 0, width, height);
+
+		}
+		function run() {
+			ctx.beginPath();
+
+			if (running) {
+				for (var i = 0; i < getNum('skip'); i++) {
+
+
+					xr12 = x1 - x2;
+					yr12 = y1 - y2;
+					r12 = Math.sqrt(xr12 ** 2 + yr12 ** 2);
+					r312 = r12 * r12 * r12;
+
+					xr31 = x3 - x1;
+					yr31 = y3 - y1;
+					r31 = Math.sqrt(xr31 ** 2 + yr31 ** 2);
+					r331 = r31 * r31 * r31;
+
+					xr32 = x3 - x2;
+					yr32 = y3 - y2;
+					r32 = Math.sqrt(xr32 ** 2 + yr32 ** 2);
+					r332 = r32 * r32 * r32;
+
+					x1n = x1 + dt * (vx1 + .5 * ac(xr12, m2, r312) * 1 + .5 * ac(-xr31, m3, r331));
+					y1n = y1 + dt * (vy1 + .5 * ac(yr12, m2, r312) * 1 + .5 * ac(-yr31, m3, r331));
+					x2n = x2 + dt * (vx2 + .5 * ac(-xr12, m1, r312) * 1 + .5 * ac(-xr32, m3, r332) * 1);
+					y2n = y2 + dt * (vy2 + .5 * ac(-yr12, m1, r312) * 1 + .5 * ac(-yr32, m3, r332) * 1);
+					x3n = x3 + dt * (vx3 + .5 * ac(xr31, m1, r331) * 1 + .5 * ac(xr32, m2, r332) * 1);
+					y3n = y3 + dt * (vy3 + .5 * ac(yr31, m1, r331) * 1 + .5 * ac(yr32, m2, r332) * 1);
+
+
+					xr12n = x1n - x2n;
+					yr12n = y1n - y2n;
+					r12n = Math.sqrt(xr12n ** 2 + yr12n ** 2);
+					rn312 = r12n * r12n * r12n;
+
+					xr31n = x3n - x1n;
+					yr31n = y3n - y1n;
+					r31n = Math.sqrt(xr31n ** 2 + yr31n ** 2);
+					rn331 = r31n * r31n * r31n;
+
+					xr32n = x3n - x2n;
+					yr32n = y3n - y2n;
+					r32n = Math.sqrt(xr32n ** 2 + yr32n ** 2);
+					rn332 = r32n * r32n * r32n;
+
+					vx1 = vx1 + .5 * (ac(xr12, m2, r312) + ac(xr12n, m2, rn312)) * 1 + .5 * (ac(-xr31, m3, r331) + ac(-xr31n, m3, rn331));
+					vy1 = vy1 + .5 * (ac(yr12, m2, r312) + ac(yr12n, m2, rn312)) * 1 + .5 * (ac(-yr31, m3, r331) + ac(-yr31n, m3, rn331));
+					vx2 = vx2 + .5 * (ac(-xr12, m1, r312) + ac(-xr12n, m1, rn312)) * 1 + .5 * (ac(-xr32, m3, r332) + ac(-xr32n, m3, rn332)) * 1;
+					vy2 = vy2 + .5 * (ac(-yr12, m1, r312) + ac(-yr12n, m1, rn312)) * 1 + .5 * (ac(-yr32, m3, r332) + ac(-yr32n, m3, rn332)) * 1;
+					vx3 = vx3 + .5 * (ac(xr31, m1, r331) + ac(xr31n, m1, rn331)) * 1 + .5 * (ac(xr32, m3, r332) + ac(xr32n, m3, rn332)) * 1;
+					vy3 = vy3 + .5 * (ac(yr31, m1, r331) + ac(yr31n, m1, rn331)) * 1 + .5 * (ac(yr32, m3, r332) + ac(yr32n, m3, rn332)) * 1;
+
+
+
+					rcmxn = cmsv * (m3 * x3n + m2 * x2n + m1 * x1n) / (m3 + m2 + m1);
+					rcmyn = cmsv * (m3 * y3n + m2 * y2n + m1 * y1n) / (m3 + m2 + m1);
+
+
+					ctx.strokeStyle = "#FF0000";
+					ctx.moveTo(Px((x1 - rcmxn) / ro), Py((y1 - rcmyn) / ro));
+					ctx.lineTo(Px((x1n - rcmxn) / ro), Py((y1n - rcmyn) / ro));
+					ctx.stroke();
+
+					ctx.strokeStyle = "#FF8C00";
+					ctx.moveTo(Px((x2 - rcmxn) / ro), Py((y2 - rcmyn) / ro));
+					ctx.lineTo(Px((x2n - rcmxn) / ro), Py((y2n - rcmyn) / ro));
+					ctx.stroke();
+
+					ctx.strokeStyle = "#0000FF";
+					ctx.moveTo(Px((x3 - rcmxn) / ro), Py((y3 - rcmyn) / ro));
+					ctx.lineTo(Px((x3n - rcmxn) / ro), Py((y3n - rcmyn) / ro));
+					ctx.stroke();
+
+					/*			       
+						ctx.clearRect(0,0,width,height) ;
+					ctx.beginPath() ;
+						ctx.arc(Px((x1n-rcmxn)/ro),Py((y1n-rcmyn)/ro),4.5,0, Math.PI*2.) ;
+						ctx.stroke() ;
+				
+					ctx.beginPath() ;
+						ctx.arc(Px((x2n-rcmxn)/ro),Py((y2n-rcmyn)/ro),4.5,0, Math.PI*2.) ;
+						ctx.stroke() ;
+				
+					ctx.beginPath() ;
+						ctx.arc(Px((x3n-rcmxn)/ro),Py((y3n-rcmyn)/ro),4.5,0, Math.PI*2.) ;
+						ctx.stroke() ;
+				*/
+					x1 = x1n;
+					y1 = y1n;
+					x2 = x2n;
+					y2 = y2n;
+					x3 = x3n;
+					y3 = y3n;
+				}
+
+			}
+			setTimeout(run, 1);
+		}
+	</script>
+</body>
+
+</html>
