@@ -6,3 +6,5 @@ A sampling of various analytical and numerical models and simulations, ranging f
 ![alt text](https://github.com/seankwarren/Modeling-and-Simulation-Samples/blob/main/01-NewtonianPhysics/TwoAndThreeBodyProblem/threeBodyProblem.gif?raw=true)
 
 ![alt text](https://github.com/seankwarren/Modeling-and-Simulation-Samples/blob/main/02-FractalsAndChaoticSystems/julia.gif?raw=true)
+
+![alt text](https://github.com/seankwarren/Modeling-and-Simulation-Samples/blob/main/02-FractalsAndChaoticSystems/conways_game_of_life.gif?raw=true)
