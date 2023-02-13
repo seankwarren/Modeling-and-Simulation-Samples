@@ -1,5 +1,5 @@
 # Modeling and Simulation Samples
-A sampling of various analytical and numerical models and simulations, ranging from the newtonion physics of a slinky drop, to the simulation of 2D excitable systems with the FitzHugh-Nagumo Model. Some examples can be seen below. There is also a helpful guide to Unix for beginner's created to help brush up on Unix Essentials when the occassions arise.
+A sampling of various analytical and numerical models and simulations, ranging from the newtonion physics of a slinky drop, to the simulation of 2D excitable systems with the FitzHugh-Nagumo Model. Some examples can be seen below. There is also a helpful guide to Unix for beginner's created to help brush up on Unix Essentials when the occassions arise. Special thanks to Dr Abouzar for Abubu.js package for webGL abstraction
 
 Many masses, each connected by a spring:
 
